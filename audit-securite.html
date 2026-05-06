@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none';" />
+  <meta name="referrer" content="no-referrer" />
+  <title>Rapport d'audit de sécurité — Quiz Cybersécurité</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #0d1117;
+      color: #e6edf3;
+      min-height: 100vh;
+      padding: 2rem 1rem 4rem;
+    }
+
+    .container { max-width: 820px; margin: 0 auto; }
+
+    /* Header */
+    .page-header {
+      border-bottom: 1px solid #30363d;
+      padding-bottom: 1.5rem;
+      margin-bottom: 2.5rem;
+    }
+
+    .badge {
+      display: inline-block;
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      padding: 3px 10px;
+      border-radius: 20px;
+      background: #1f3a5f;
+      color: #58a6ff;
+      margin-bottom: 0.75rem;
+    }
+
+    .page-header h1 {
+      font-size: 1.9rem;
+      color: #e6edf3;
+      margin-bottom: 0.5rem;
+    }
+
+    .meta {
+      font-size: 0.85rem;
+      color: #8b949e;
+    }
+
+    .meta span { margin-right: 1.5rem; }
+
+    /* Summary cards */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2.5rem;
+    }
+
+    .summary-card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 10px;
+      padding: 1.25rem 1rem;
+      text-align: center;
+    }
+
+    .summary-card .num {
+      font-size: 2rem;
+      font-weight: 700;
+      line-height: 1;
+      margin-bottom: 0.3rem;
+    }
+
+    .summary-card .lbl { font-size: 0.8rem; color: #8b949e; }
+
+    .num.red   { color: #f85149; }
+    .num.orange{ color: #e3b341; }
+    .num.blue  { color: #58a6ff; }
+    .num.green { color: #3fb950; }
+
+    /* Section */
+    section { margin-bottom: 2.5rem; }
+
+    section h2 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #58a6ff;
+      border-bottom: 1px solid #21262d;
+      padding-bottom: 0.5rem;
+      margin-bottom: 1.25rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-size: 0.85rem;
+    }
+
+    /* Finding card */
+    .finding {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 1rem;
+    }
+
+    .finding-header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid #21262d;
+    }
+
+    .severity {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 3px 9px;
+      border-radius: 20px;
+      flex-shrink: 0;
+    }
+
+    .sev-high   { background: #3d1a1a; color: #f85149; border: 1px solid #f85149; }
+    .sev-medium { background: #2b2200; color: #e3b341; border: 1px solid #e3b341; }
+    .sev-low    { background: #1a2a1a; color: #3fb950; border: 1px solid #3fb950; }
+    .sev-info   { background: #1a2233; color: #58a6ff; border: 1px solid #58a6ff; }
+
+    .finding-title { font-weight: 600; font-size: 1rem; }
+
+    .finding-body { padding: 1.25rem; }
+
+    .finding-body p {
+      font-size: 0.92rem;
+      color: #c9d1d9;
+      line-height: 1.7;
+      margin-bottom: 0.85rem;
+    }
+
+    .finding-body p:last-child { margin-bottom: 0; }
+
+    .label {
+      display: inline-block;
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #8b949e;
+      margin-bottom: 0.3rem;
+    }
+
+    code {
+      font-family: 'Consolas', 'Menlo', monospace;
+      font-size: 0.85em;
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 4px;
+      padding: 1px 5px;
+      color: #e6edf3;
+    }
+
+    pre {
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 1rem;
+      font-family: 'Consolas', 'Menlo', monospace;
+      font-size: 0.82rem;
+      line-height: 1.6;
+      color: #c9d1d9;
+      overflow-x: auto;
+      margin-top: 0.5rem;
+    }
+
+    .fix-block {
+      margin-top: 1rem;
+      border-top: 1px solid #21262d;
+      padding-top: 1rem;
+    }
+
+    .fix-block .label { color: #3fb950; }
+
+    /* Scope table */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+
+    th {
+      text-align: left;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: #8b949e;
+      padding: 0.6rem 1rem;
+      border-bottom: 1px solid #30363d;
+    }
+
+    td {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid #21262d;
+      color: #c9d1d9;
+      vertical-align: top;
+    }
+
+    tr:last-child td { border-bottom: none; }
+
+    .check { color: #3fb950; font-weight: 700; }
+    .cross { color: #f85149; font-weight: 700; }
+
+    /* Conclusion */
+    .conclusion {
+      background: #0d2b1a;
+      border: 1px solid #3fb950;
+      border-radius: 10px;
+      padding: 1.5rem;
+      font-size: 0.92rem;
+      line-height: 1.7;
+      color: #c9d1d9;
+    }
+
+    .conclusion strong { color: #3fb950; }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <div class="page-header">
+    <div class="badge">Rapport d'audit</div>
+    <h1>Audit de sécurité — Quiz Cybersécurité</h1>
+    <div class="meta">
+      <span>Fichier cible : <code>quiz-cybersecurite.html</code></span>
+      <span>Date : 2026-05-06</span>
+      <span>Auditeur : Claude (Sonnet 4.6)</span>
+    </div>
+  </div>
+
+  <!-- Summary -->
+  <div class="summary-grid">
+    <div class="summary-card">
+      <div class="num red">1</div>
+      <div class="lbl">Critique / Élevé</div>
+    </div>
+    <div class="summary-card">
+      <div class="num orange">2</div>
+      <div class="lbl">Moyen</div>
+    </div>
+    <div class="summary-card">
+      <div class="num blue">1</div>
+      <div class="lbl">Faible / Info</div>
+    </div>
+    <div class="summary-card">
+      <div class="num green">4</div>
+      <div class="lbl">Corrections appliquées</div>
+    </div>
+  </div>
+
+  <!-- Scope -->
+  <section>
+    <h2>Périmètre audité</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Domaine</th>
+          <th>Vérifié</th>
+          <th>Observations initiales</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Cross-Site Scripting (XSS)</td>
+          <td class="check">✔</td>
+          <td>Usage de <code>innerHTML</code> avec interpolation de chaînes</td>
+        </tr>
+        <tr>
+          <td>Content Security Policy (CSP)</td>
+          <td class="check">✔</td>
+          <td>Aucune directive CSP présente</td>
+        </tr>
+        <tr>
+          <td>Referrer Policy</td>
+          <td class="check">✔</td>
+          <td>Absence de politique de référent</td>
+        </tr>
+        <tr>
+          <td>Liens externes (<code>target="_blank"</code>)</td>
+          <td class="check">✔</td>
+          <td><code>rel="noopener noreferrer"</code> déjà présent — conforme</td>
+        </tr>
+        <tr>
+          <td>Aléatoire cryptographique</td>
+          <td class="check">✔</td>
+          <td>Algorithme de mélange biaisé (<code>sort + Math.random</code>)</td>
+        </tr>
+        <tr>
+          <td>Ressources externes (CDN, polices)</td>
+          <td class="check">✔</td>
+          <td>Aucune dépendance externe — conforme</td>
+        </tr>
+        <tr>
+          <td>Injection SQL / Server-side</td>
+          <td class="check">✔</td>
+          <td>Page statique sans back-end — hors périmètre</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- Findings -->
+  <section>
+    <h2>Vulnérabilités et corrections</h2>
+
+    <!-- Finding 1 -->
+    <div class="finding">
+      <div class="finding-header">
+        <span class="severity sev-high">Élevé</span>
+        <span class="finding-title">Usage de <code>innerHTML</code> avec interpolation de chaînes</span>
+      </div>
+      <div class="finding-body">
+        <span class="label">Problème</span>
+        <p>
+          Deux endroits du code construisaient du HTML via <code>innerHTML</code> en interpolant directement
+          des variables : les libellés des options de réponse et le récapitulatif des questions.
+          Si le contenu des questions venait un jour d'une source externe (API, fichier JSON chargé dynamiquement),
+          toute valeur non filtrée pourrait injecter du HTML arbitraire et déclencher du JavaScript —
+          c'est la définition d'une faille XSS stockée.
+        </p>
+        <span class="label">Code vulnérable</span>
+        <pre>// Option buttons
+btn.innerHTML = `&lt;span class="letter"&gt;${letters[i]}&lt;/span&gt;&lt;span&gt;${opt}&lt;/span&gt;`;
+
+// Review list
+item.innerHTML = `&lt;span class="dot ${a.correct ? 'ok' : 'ko'}"&gt;&lt;/span&gt;
+  &lt;span&gt;${shuffled[i].text.substring(0, 70)}…&lt;/span&gt;`;</pre>
+        <div class="fix-block">
+          <span class="label">Correction appliquée</span>
+          <p>
+            Remplacement par la création explicite de nœuds DOM avec
+            <code>document.createElement()</code> et affectation via <code>textContent</code>,
+            qui ne parse jamais le contenu en HTML.
+          </p>
+          <pre>const letterSpan = document.createElement('span');
+letterSpan.className = 'letter';
+letterSpan.textContent = letters[i];   // jamais interprété comme HTML
+const textSpan = document.createElement('span');
+textSpan.textContent = opt;
+btn.appendChild(letterSpan);
+btn.appendChild(textSpan);</pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- Finding 2 -->
+    <div class="finding">
+      <div class="finding-header">
+        <span class="severity sev-medium">Moyen</span>
+        <span class="finding-title">Absence de Content Security Policy (CSP)</span>
+      </div>
+      <div class="finding-body">
+        <span class="label">Problème</span>
+        <p>
+          Sans CSP, un attaquant qui parviendrait à injecter du contenu dans la page pourrait
+          charger des scripts depuis n'importe quel domaine externe, exfiltrer des données
+          ou rediriger l'utilisateur. La CSP est la ligne de défense en profondeur contre les XSS.
+        </p>
+        <div class="fix-block">
+          <span class="label">Correction appliquée</span>
+          <p>
+            Ajout d'une balise meta CSP restrictive. Elle autorise uniquement les scripts et styles
+            inline (nécessaires pour une page HTML autonome), bloque toute ressource externe,
+            interdit les soumissions de formulaires et les changements de <code>base</code>.
+          </p>
+          <pre>&lt;meta http-equiv="Content-Security-Policy"
+  content="default-src 'none';
+           script-src 'unsafe-inline';
+           style-src 'unsafe-inline';
+           base-uri 'none';
+           form-action 'none';" /&gt;</pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- Finding 3 -->
+    <div class="finding">
+      <div class="finding-header">
+        <span class="severity sev-medium">Moyen</span>
+        <span class="finding-title">Absence de Referrer Policy</span>
+      </div>
+      <div class="finding-body">
+        <span class="label">Problème</span>
+        <p>
+          La page contient un lien externe vers <code>bitwarden.com</code>. Sans politique de référent,
+          le navigateur envoie l'URL complète de la page dans l'en-tête <code>Referer</code> lors du clic.
+          Ce comportement peut révéler à des tiers le contexte de navigation de l'utilisateur,
+          surtout si la page est hébergée sur une URL interne ou contient des paramètres sensibles.
+        </p>
+        <div class="fix-block">
+          <span class="label">Correction appliquée</span>
+          <p>
+            Ajout de la balise meta <code>referrer</code> avec la valeur <code>no-referrer</code>,
+            qui supprime l'en-tête pour tous les liens sortants. Le lien disposait déjà de
+            <code>rel="noopener noreferrer"</code>, qui couvre le cas du <code>target="_blank"</code> ;
+            la balise meta élargit cette protection à l'ensemble de la page.
+          </p>
+          <pre>&lt;meta name="referrer" content="no-referrer" /&gt;</pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- Finding 4 -->
+    <div class="finding">
+      <div class="finding-header">
+        <span class="severity sev-low">Faible</span>
+        <span class="finding-title">Algorithme de mélange biaisé</span>
+      </div>
+      <div class="finding-body">
+        <span class="label">Problème</span>
+        <p>
+          La fonction <code>shuffle</code> utilisait <code>[...arr].sort(() => Math.random() - 0.5)</code>.
+          Cette technique est connue pour produire une distribution non uniforme : certaines permutations
+          ont une probabilité d'apparition significativement plus élevée que d'autres. Dans un quiz,
+          cela signifie que certains ordres de questions reviennent bien plus souvent qu'attendu,
+          réduisant la valeur pédagogique des sessions répétées.
+        </p>
+        <span class="label">Code vulnérable</span>
+        <pre>// Biaisé — certaines permutations favorisées
+function shuffle(arr) {
+  return [...arr].sort(() => Math.random() - 0.5);
+}</pre>
+        <div class="fix-block">
+          <span class="label">Correction appliquée</span>
+          <p>
+            Remplacement par l'algorithme <strong>Fisher-Yates</strong> (Knuth shuffle),
+            qui garantit une distribution uniforme en O(n) — chaque permutation a
+            exactement la même probabilité d'apparaître.
+          </p>
+          <pre>function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}</pre>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- Positive findings -->
+  <section>
+    <h2>Points conformes — aucune action requise</h2>
+    <table>
+      <thead>
+        <tr><th>Point de contrôle</th><th>Statut</th><th>Détail</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Liens <code>target="_blank"</code></td>
+          <td class="check">✔ Conforme</td>
+          <td><code>rel="noopener noreferrer"</code> déjà présent sur le lien Bitwarden</td>
+        </tr>
+        <tr>
+          <td>Zéro dépendance externe</td>
+          <td class="check">✔ Conforme</td>
+          <td>Aucun CDN, aucune police externe, aucun pixel de tracking</td>
+        </tr>
+        <tr>
+          <td>Pas de stockage de données utilisateur</td>
+          <td class="check">✔ Conforme</td>
+          <td>Ni <code>localStorage</code>, ni cookies, ni envoi réseau</td>
+        </tr>
+        <tr>
+          <td>Encodage des caractères</td>
+          <td class="check">✔ Conforme</td>
+          <td><code>&lt;meta charset="UTF-8"&gt;</code> déclaré en premier dans <code>&lt;head&gt;</code></td>
+        </tr>
+        <tr>
+          <td>Injection côté serveur</td>
+          <td class="check">✔ Hors périmètre</td>
+          <td>Page entièrement statique — pas de back-end, pas de base de données</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- Conclusion -->
+  <section>
+    <h2>Conclusion</h2>
+    <div class="conclusion">
+      Les <strong>4 corrections</strong> ont été appliquées directement dans
+      <code>quiz-cybersecurite.html</code> et commitées sur la branche de développement.
+      La page ne charge aucune ressource externe, ne collecte aucune donnée et ne soumet rien
+      à un serveur — ce qui en fait une surface d'attaque très réduite.
+      Les corrections apportées (CSP, Referrer Policy, DOM API sûre, Fisher-Yates) renforcent
+      la défense en profondeur et pérennisent le code face à d'éventuelles évolutions futures
+      (contenu dynamique, intégration dans un CMS, etc.).
+    </div>
+  </section>
+
+</div>
+</body>
+</html>
