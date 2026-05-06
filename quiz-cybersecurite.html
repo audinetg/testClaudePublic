@@ -263,6 +263,44 @@
 
     .dot.ok { background: #3fb950; }
     .dot.ko { background: #f85149; }
+
+    .bitwarden-tip {
+      margin-top: 2rem;
+      padding: 1.25rem 1.5rem;
+      background: #0d2b1a;
+      border: 1px solid #3fb950;
+      border-radius: 10px;
+      text-align: left;
+      display: flex;
+      gap: 1rem;
+      align-items: flex-start;
+    }
+
+    .bitwarden-tip .bw-icon {
+      font-size: 2rem;
+      flex-shrink: 0;
+      line-height: 1;
+    }
+
+    .bitwarden-tip h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #3fb950;
+      margin-bottom: 0.4rem;
+    }
+
+    .bitwarden-tip p {
+      font-size: 0.88rem;
+      color: #c9d1d9;
+      line-height: 1.6;
+    }
+
+    .bitwarden-tip a {
+      color: #58a6ff;
+      text-decoration: none;
+    }
+
+    .bitwarden-tip a:hover { text-decoration: underline; }
   </style>
 </head>
 <body>
@@ -301,6 +339,21 @@
       <div class="result-msg" id="result-msg"></div>
       <button class="btn-restart" id="btn-restart">Recommencer le quiz</button>
       <div class="review-list" id="review-list"></div>
+
+      <div class="bitwarden-tip">
+        <span class="bw-icon">🔑</span>
+        <div>
+          <h3>Conseil : utilisez un gestionnaire de mots de passe</h3>
+          <p>
+            Retenir des dizaines de mots de passe forts et uniques est impossible sans aide.
+            <strong>Bitwarden</strong> est un gestionnaire open source, gratuit et audité indépendamment.
+            Il génère et stocke vos mots de passe de façon chiffrée, synchronisés sur tous vos appareils.
+            C'est l'une des mesures les plus efficaces pour améliorer votre sécurité au quotidien.
+            <br /><br />
+            → <a href="https://bitwarden.com" target="_blank" rel="noopener noreferrer">bitwarden.com</a> — disponible sur Windows, macOS, Linux, iOS, Android et en extension navigateur.
+          </p>
+        </div>
+      </div>
     </div>
   </div>
 </div>
