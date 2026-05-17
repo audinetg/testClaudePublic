@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BARBARIAN PONG - AMSTRAD 1512</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    font-family: 'Press Start 2P', monospace, Courier;
+    overflow: hidden;
+  }
+
+  /* CRT scanline overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.15) 2px,
+      rgba(0,0,0,0.15) 4px
+    );
+    pointer-events: none;
+    z-index: 100;
+  }
+
+  /* CRT vignette */
+  body::after {
+    content: '';
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: radial-gradient(ellipse at center,
+      transparent 60%,
+      rgba(0,0,0,0.7) 100%
+    );
+    pointer-events: none;
+    z-index: 101;
+  }
+
+  #screen {
+    position: relative;
+    border: 4px solid #00FF41;
+    box-shadow:
+      0 0 10px #00FF41,
+      0 0 20px #00FF41,
+      0 0 40px rgba(0,255,65,0.3),
+      inset 0 0 10px rgba(0,255,65,0.1);
+  }
+
+  canvas {
+    display: block;
+    image-rendering: pixelated;
+  }
+
+  #ui {
+    width: 640px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    color: #00FF41;
+    font-size: 8px;
+    text-shadow: 0 0 8px #00FF41;
+    letter-spacing: 1px;
+  }
+
+  #menu {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.92);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    z-index: 50;
+  }
+
+  #menu.hidden { display: none; }
+
+  .menu-title {
+    color: #FF0055;
+    font-size: 22px;
+    text-shadow: 0 0 10px #FF0055, 3px 3px 0 #880022;
+    letter-spacing: 4px;
+    margin-bottom: 4px;
+    animation: flicker 3s infinite;
+  }
+
+  .menu-subtitle {
+    color: #00AAFF;
+    font-size: 8px;
+    text-shadow: 0 0 8px #00AAFF;
+    letter-spacing: 6px;
+    margin-bottom: 40px;
+  }
+
+  .menu-label {
+    color: #FFAA00;
+    font-size: 8px;
+    text-shadow: 0 0 6px #FFAA00;
+    margin-bottom: 14px;
+    letter-spacing: 2px;
+  }
+
+  .diff-buttons {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 40px;
+  }
+
+  .diff-btn {
+    background: #000;
+    border: 2px solid #00FF41;
+    color: #00FF41;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    padding: 10px 16px;
+    cursor: pointer;
+    text-shadow: 0 0 6px #00FF41;
+    box-shadow: 0 0 6px #00FF41;
+    letter-spacing: 1px;
+    transition: all 0.1s;
+    position: relative;
+  }
+
+  .diff-btn:hover, .diff-btn.selected {
+    background: #00FF41;
+    color: #000;
+    text-shadow: none;
+    box-shadow: 0 0 14px #00FF41;
+  }
+
+  .diff-btn.easy   { border-color: #00FF41; color: #00FF41; }
+  .diff-btn.medium { border-color: #FFAA00; color: #FFAA00; text-shadow: 0 0 6px #FFAA00; box-shadow: 0 0 6px #FFAA00; }
+  .diff-btn.hard   { border-color: #FF0055; color: #FF0055; text-shadow: 0 0 6px #FF0055; box-shadow: 0 0 6px #FF0055; }
+
+  .diff-btn.easy.selected,  .diff-btn.easy:hover   { background: #00FF41;  color: #000; box-shadow: 0 0 14px #00FF41; }
+  .diff-btn.medium.selected,.diff-btn.medium:hover  { background: #FFAA00; color: #000; box-shadow: 0 0 14px #FFAA00; }
+  .diff-btn.hard.selected,  .diff-btn.hard:hover   { background: #FF0055;  color: #000; box-shadow: 0 0 14px #FF0055; }
+
+  .start-btn {
+    background: #000;
+    border: 2px solid #FF0055;
+    color: #FF0055;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 11px;
+    padding: 14px 32px;
+    cursor: pointer;
+    text-shadow: 0 0 10px #FF0055;
+    box-shadow: 0 0 10px #FF0055;
+    letter-spacing: 3px;
+    animation: pulse 1.5s infinite;
+  }
+
+  .start-btn:hover {
+    background: #FF0055;
+    color: #000;
+    text-shadow: none;
+    animation: none;
+    box-shadow: 0 0 20px #FF0055;
+  }
+
+  .controls-hint {
+    position: absolute;
+    bottom: 20px;
+    color: #444;
+    font-size: 7px;
+    letter-spacing: 1px;
+  }
+
+  #gameover {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.88);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+  }
+
+  #gameover.hidden { display: none; }
+
+  .go-title {
+    font-size: 26px;
+    margin-bottom: 20px;
+    animation: flicker 2s infinite;
+  }
+
+  .go-winner { color: #00AAFF; text-shadow: 0 0 12px #00AAFF; }
+  .go-loser  { color: #FF0055; text-shadow: 0 0 12px #FF0055; }
+
+  .go-score {
+    color: #FFAA00;
+    font-size: 10px;
+    text-shadow: 0 0 8px #FFAA00;
+    margin-bottom: 30px;
+    letter-spacing: 3px;
+  }
+
+  .go-btn {
+    background: #000;
+    border: 2px solid #00FF41;
+    color: #00FF41;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 9px;
+    padding: 12px 24px;
+    cursor: pointer;
+    text-shadow: 0 0 8px #00FF41;
+    box-shadow: 0 0 8px #00FF41;
+    letter-spacing: 2px;
+    margin: 6px;
+  }
+
+  .go-btn:hover {
+    background: #00FF41;
+    color: #000;
+    text-shadow: none;
+    box-shadow: 0 0 16px #00FF41;
+  }
+
+  @keyframes flicker {
+    0%,95%,100% { opacity: 1; }
+    96% { opacity: 0.4; }
+    97% { opacity: 1; }
+    98% { opacity: 0.2; }
+    99% { opacity: 1; }
+  }
+
+  @keyframes pulse {
+    0%,100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  .diff-tag {
+    font-size: 7px;
+    letter-spacing: 1px;
+  }
+</style>
+</head>
+<body>
+
+<div id="ui">
+  <span id="ui-player">JOUEUR</span>
+  <span id="ui-diff">--</span>
+  <span id="ui-cpu">CPU</span>
+</div>
+
+<div id="screen">
+  <canvas id="canvas" width="640" height="400"></canvas>
+
+  <!-- MENU -->
+  <div id="menu">
+    <div class="menu-title">BARBARIAN</div>
+    <div class="menu-subtitle">PONG</div>
+    <div class="menu-label">CHOISIR DIFFICULTE</div>
+    <div class="diff-buttons">
+      <button class="diff-btn easy"   onclick="selectDiff(0)">NOVICE</button>
+      <button class="diff-btn medium" onclick="selectDiff(1)">GUERRIER</button>
+      <button class="diff-btn hard"   onclick="selectDiff(2)">BARBARE</button>
+    </div>
+    <button class="start-btn" onclick="startGame()">&#9658; COMBATTRE &#9668;</button>
+    <div class="controls-hint">W/S OU FLECHES POUR BOUGER &nbsp;|&nbsp; PREMIER A 7 POINTS GAGNE</div>
+  </div>
+
+  <!-- GAME OVER -->
+  <div id="gameover" class="hidden">
+    <div class="go-title" id="go-title">--</div>
+    <div class="go-score" id="go-score">--</div>
+    <button class="go-btn" onclick="restartSameDiff()">REVANCHE</button>
+    <button class="go-btn" onclick="backToMenu()">MENU</button>
+  </div>
+</div>
+
+<script>
+// ─────────────────────────────────────────────
+// CONFIG
+// ─────────────────────────────────────────────
+const W = 640, H = 400;
+const WINNING_SCORE = 7;
+
+const PADDLE_W = 12, PADDLE_H = 64;
+const BALL_SIZE = 10;
+
+const DIFFICULTIES = [
+  { name: 'NOVICE',   color: '#00FF41', cpuSpeed: 2.2, cpuReactionZone: 0.55, cpuError: 14, ballSpeedInit: 4.5 },
+  { name: 'GUERRIER', color: '#FFAA00', cpuSpeed: 3.8, cpuReactionZone: 0.72, cpuError: 7,  ballSpeedInit: 5.5 },
+  { name: 'BARBARE',  color: '#FF0055', cpuSpeed: 5.8, cpuReactionZone: 0.90, cpuError: 2,  ballSpeedInit: 6.5 },
+];
+
+// ─────────────────────────────────────────────
+// AUDIO
+// ─────────────────────────────────────────────
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let audioCtx = null;
+
+function ensureAudio() {
+  if (!audioCtx) audioCtx = new AudioCtx();
+}
+
+function beep(freq, dur, type = 'square', vol = 0.18) {
+  if (!audioCtx) return;
+  const o = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  o.connect(g); g.connect(audioCtx.destination);
+  o.type = type;
+  o.frequency.setValueAtTime(freq, audioCtx.currentTime);
+  o.frequency.exponentialRampToValueAtTime(freq * 0.7, audioCtx.currentTime + dur);
+  g.gain.setValueAtTime(vol, audioCtx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+  o.start(); o.stop(audioCtx.currentTime + dur);
+}
+
+function sndHit()   { beep(320, 0.06); }
+function sndWall()  { beep(180, 0.05); }
+function sndScore() { beep(80, 0.04); setTimeout(() => beep(60,0.2,'sawtooth',0.1), 50); }
+function sndWin()   { [523,659,784,1047].forEach((f,i) => setTimeout(() => beep(f,0.15,'square',0.15), i*120)); }
+function sndLose()  { [200,160,120,80].forEach((f,i) => setTimeout(() => beep(f,0.18,'sawtooth',0.12), i*100)); }
+
+// ─────────────────────────────────────────────
+// STATE
+// ─────────────────────────────────────────────
+const canvas = document.getElementById('canvas');
+const ctx    = canvas.getContext('2d');
+
+let selectedDiff = 1;
+let state = 'menu'; // menu | play | gameover
+let diff;
+
+let playerY, cpuY;
+let ballX, ballY, ballVX, ballVY;
+let playerScore, cpuScore;
+let particles = [];
+let flashTimer = 0;
+let cpuTarget, cpuErrorOffset;
+
+let keys = {};
+let lastTime = 0;
+
+// ─────────────────────────────────────────────
+// UI CONTROLS
+// ─────────────────────────────────────────────
+function selectDiff(d) {
+  selectedDiff = d;
+  document.querySelectorAll('.diff-btn').forEach((b, i) => {
+    b.classList.toggle('selected', i === d);
+  });
+}
+
+selectDiff(1);
+
+function startGame() {
+  ensureAudio();
+  diff = DIFFICULTIES[selectedDiff];
+  document.getElementById('menu').classList.add('hidden');
+  document.getElementById('gameover').classList.add('hidden');
+  document.getElementById('ui-diff').textContent = diff.name;
+  document.getElementById('ui-diff').style.color = diff.color;
+  document.getElementById('ui-diff').style.textShadow = `0 0 8px ${diff.color}`;
+  initRound(true);
+  state = 'play';
+  requestAnimationFrame(loop);
+}
+
+function restartSameDiff() {
+  document.getElementById('gameover').classList.add('hidden');
+  initRound(true);
+  state = 'play';
+}
+
+function backToMenu() {
+  document.getElementById('gameover').classList.add('hidden');
+  document.getElementById('menu').classList.remove('hidden');
+  state = 'menu';
+}
+
+// ─────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────
+function initRound(resetScore) {
+  if (resetScore) { playerScore = 0; cpuScore = 0; }
+
+  playerY = H / 2 - PADDLE_H / 2;
+  cpuY    = H / 2 - PADDLE_H / 2;
+  ballX   = W / 2;
+  ballY   = H / 2;
+  particles = [];
+  flashTimer = 0;
+
+  const angle = (Math.random() * 0.6 - 0.3) + (Math.random() < 0.5 ? 0 : Math.PI);
+  const spd = diff.ballSpeedInit;
+  ballVX = Math.cos(angle) * spd;
+  ballVY = Math.sin(angle) * spd;
+  if (Math.abs(ballVX) < 2) ballVX = ballVX < 0 ? -2 : 2;
+
+  setCpuTarget();
+}
+
+function setCpuTarget() {
+  cpuTarget = H / 2 - PADDLE_H / 2;
+  cpuErrorOffset = (Math.random() * 2 - 1) * diff.cpuError;
+}
+
+// ─────────────────────────────────────────────
+// INPUT
+// ─────────────────────────────────────────────
+document.addEventListener('keydown', e => { keys[e.code] = true; });
+document.addEventListener('keyup',   e => { keys[e.code] = false; });
+
+// ─────────────────────────────────────────────
+// PARTICLES
+// ─────────────────────────────────────────────
+function spawnParticles(x, y, color, n = 14) {
+  for (let i = 0; i < n; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const sp = 1.5 + Math.random() * 3;
+    particles.push({
+      x, y,
+      vx: Math.cos(a) * sp,
+      vy: Math.sin(a) * sp,
+      life: 1,
+      color,
+      size: 2 + Math.random() * 3,
+    });
+  }
+}
+
+function updateParticles(dt) {
+  particles = particles.filter(p => p.life > 0);
+  for (const p of particles) {
+    p.x += p.vx * dt * 60;
+    p.y += p.vy * dt * 60;
+    p.life -= dt * 2;
+  }
+}
+
+function drawParticles() {
+  for (const p of particles) {
+    ctx.globalAlpha = p.life;
+    ctx.fillStyle = p.color;
+    ctx.fillRect(p.x - p.size/2, p.y - p.size/2, p.size, p.size);
+  }
+  ctx.globalAlpha = 1;
+}
+
+// ─────────────────────────────────────────────
+// GAME LOOP
+// ─────────────────────────────────────────────
+function loop(ts) {
+  const dt = Math.min((ts - lastTime) / 1000, 0.05);
+  lastTime = ts;
+
+  if (state !== 'play') return;
+
+  update(dt);
+  draw();
+  requestAnimationFrame(loop);
+}
+
+// ─────────────────────────────────────────────
+// UPDATE
+// ─────────────────────────────────────────────
+function update(dt) {
+  const speed = 5.5;
+
+  // Player
+  if (keys['KeyW'] || keys['ArrowUp']) {
+    playerY -= speed * dt * 60;
+  }
+  if (keys['KeyS'] || keys['ArrowDown']) {
+    playerY += speed * dt * 60;
+  }
+  playerY = Math.max(0, Math.min(H - PADDLE_H, playerY));
+
+  // CPU AI
+  if (ballVX > 0 && ballX > W * diff.cpuReactionZone) {
+    // Compute predicted Y (simple)
+    const timeToReach = (W - PADDLE_W * 2 - ballX) / Math.abs(ballVX);
+    let predY = ballY + ballVY * timeToReach;
+    // Bounce prediction
+    while (predY < 0 || predY > H) {
+      if (predY < 0)  predY = -predY;
+      if (predY > H)  predY = 2 * H - predY;
+    }
+    cpuTarget = predY - PADDLE_H / 2 + cpuErrorOffset;
+  }
+
+  const cpuCenter = cpuY + PADDLE_H / 2;
+  const targetCenter = cpuTarget + PADDLE_H / 2;
+  const dist = targetCenter - cpuCenter;
+
+  if (Math.abs(dist) > 2) {
+    const move = Math.sign(dist) * Math.min(diff.cpuSpeed * dt * 60, Math.abs(dist));
+    cpuY += move;
+  }
+  cpuY = Math.max(0, Math.min(H - PADDLE_H, cpuY));
+
+  // Ball
+  ballX += ballVX * dt * 60;
+  ballY += ballVY * dt * 60;
+
+  // Wall bounce top/bottom
+  if (ballY <= 0) {
+    ballY = 0;
+    ballVY = Math.abs(ballVY);
+    sndWall();
+    spawnParticles(ballX, ballY, '#00AAFF', 8);
+    flashTimer = 0.05;
+  }
+  if (ballY + BALL_SIZE >= H) {
+    ballY = H - BALL_SIZE;
+    ballVY = -Math.abs(ballVY);
+    sndWall();
+    spawnParticles(ballX, ballY + BALL_SIZE, '#00AAFF', 8);
+    flashTimer = 0.05;
+  }
+
+  // Player paddle collision
+  const pLeft = PADDLE_W + 2;
+  const pRight = pLeft + PADDLE_W;
+  if (ballVX < 0 &&
+      ballX <= pRight && ballX >= pLeft &&
+      ballY + BALL_SIZE >= playerY && ballY <= playerY + PADDLE_H) {
+    ballX = pRight;
+    const hitPos = (ballY + BALL_SIZE / 2 - playerY) / PADDLE_H; // 0..1
+    const bounceAngle = (hitPos - 0.5) * 1.2; // -0.6..+0.6 rad
+    const spd = Math.hypot(ballVX, ballVY) * 1.05;
+    ballVX =  Math.abs(Math.cos(bounceAngle) * spd);
+    ballVY =  Math.sin(bounceAngle) * spd;
+    sndHit();
+    spawnParticles(ballX, ballY + BALL_SIZE/2, diff.color, 12);
+    flashTimer = 0.04;
+    setCpuTarget();
+  }
+
+  // CPU paddle collision
+  const cLeft = W - PADDLE_W * 2 - 2;
+  const cRight = cLeft + PADDLE_W;
+  if (ballVX > 0 &&
+      ballX + BALL_SIZE >= cLeft && ballX + BALL_SIZE <= cRight + BALL_SIZE &&
+      ballY + BALL_SIZE >= cpuY && ballY <= cpuY + PADDLE_H) {
+    ballX = cLeft - BALL_SIZE;
+    const hitPos = (ballY + BALL_SIZE / 2 - cpuY) / PADDLE_H;
+    const bounceAngle = (hitPos - 0.5) * 1.2;
+    const spd = Math.hypot(ballVX, ballVY) * 1.05;
+    ballVX = -Math.abs(Math.cos(bounceAngle) * spd);
+    ballVY =  Math.sin(bounceAngle) * spd;
+    sndHit();
+    spawnParticles(ballX + BALL_SIZE, ballY + BALL_SIZE/2, '#FF0055', 12);
+    flashTimer = 0.04;
+  }
+
+  // Cap ball speed
+  const maxSpd = 18;
+  const curSpd = Math.hypot(ballVX, ballVY);
+  if (curSpd > maxSpd) {
+    ballVX = ballVX / curSpd * maxSpd;
+    ballVY = ballVY / curSpd * maxSpd;
+  }
+
+  // Score
+  if (ballX + BALL_SIZE < 0) {
+    cpuScore++;
+    sndScore();
+    spawnParticles(W/2, H/2, '#FF0055', 30);
+    updateScoreUI();
+    if (cpuScore >= WINNING_SCORE) { endGame(false); return; }
+    setTimeout(() => initRound(false), 800);
+    state = 'pause';
+    setTimeout(() => { if (state === 'pause') state = 'play'; }, 800);
+  }
+  if (ballX > W) {
+    playerScore++;
+    sndScore();
+    spawnParticles(W/2, H/2, '#00FF41', 30);
+    updateScoreUI();
+    if (playerScore >= WINNING_SCORE) { endGame(true); return; }
+    setTimeout(() => initRound(false), 800);
+    state = 'pause';
+    setTimeout(() => { if (state === 'pause') state = 'play'; }, 800);
+  }
+
+  if (flashTimer > 0) flashTimer -= dt;
+  updateParticles(dt);
+}
+
+function updateScoreUI() {
+  document.getElementById('ui-player').textContent = `JOUEUR  ${playerScore}`;
+  document.getElementById('ui-cpu').textContent    = `${cpuScore}  CPU`;
+}
+
+// ─────────────────────────────────────────────
+// END GAME
+// ─────────────────────────────────────────────
+function endGame(playerWon) {
+  state = 'gameover';
+  const goDiv = document.getElementById('gameover');
+  const goTitle = document.getElementById('go-title');
+  const goScore = document.getElementById('go-score');
+
+  if (playerWon) {
+    goTitle.textContent = 'VICTOIRE!';
+    goTitle.className = 'go-title go-winner';
+    sndWin();
+  } else {
+    goTitle.textContent = 'DEFAITE...';
+    goTitle.className = 'go-title go-loser';
+    sndLose();
+  }
+  goScore.textContent = `${playerScore} - ${cpuScore}`;
+  goDiv.classList.remove('hidden');
+}
+
+// ─────────────────────────────────────────────
+// DRAW
+// ─────────────────────────────────────────────
+function draw() {
+  // Background
+  ctx.fillStyle = flashTimer > 0 ? '#0a0a14' : '#000005';
+  ctx.fillRect(0, 0, W, H);
+
+  // Center dashed line
+  ctx.setLineDash([8, 10]);
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(W/2, 0);
+  ctx.lineTo(W/2, H);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Arena border
+  ctx.strokeStyle = '#0d2b0d';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(1, 1, W-2, H-2);
+
+  // Particles
+  drawParticles();
+
+  // Player paddle (left)
+  drawPaddle(PADDLE_W + 2, playerY, '#00FF41');
+
+  // CPU paddle (right)
+  drawPaddle(W - PADDLE_W * 2 - 2, cpuY, '#FF0055');
+
+  // Ball
+  drawBall();
+
+  // Score (in canvas too)
+  ctx.fillStyle = '#0d2b0d';
+  ctx.font = '48px "Press Start 2P", monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText(playerScore, W/2 - 80, 60);
+  ctx.fillText(cpuScore,    W/2 + 80, 60);
+
+  ctx.fillStyle = '#1a5c1a';
+  ctx.fillText(playerScore, W/2 - 82, 58);
+  ctx.fillText(cpuScore,    W/2 + 78, 58);
+
+  ctx.fillStyle = '#00FF41';
+  ctx.fillText(playerScore, W/2 - 84, 56);
+  ctx.fillStyle = '#FF0055';
+  ctx.fillText(cpuScore,    W/2 + 76, 56);
+
+  // Diff tag
+  ctx.font = '10px "Press Start 2P", monospace';
+  ctx.fillStyle = diff.color;
+  ctx.globalAlpha = 0.3;
+  ctx.fillText(diff.name, W/2, H - 10);
+  ctx.globalAlpha = 1;
+
+  ctx.textAlign = 'left';
+}
+
+function drawPaddle(x, y, color) {
+  // Shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+  ctx.fillRect(x + 3, y + 3, PADDLE_W, PADDLE_H);
+
+  // Glow
+  ctx.shadowColor = color;
+  ctx.shadowBlur = 12;
+
+  // Main body
+  ctx.fillStyle = color;
+  ctx.fillRect(x, y, PADDLE_W, PADDLE_H);
+
+  // Inner highlight
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = 'rgba(255,255,255,0.25)';
+  ctx.fillRect(x + 2, y + 2, 3, PADDLE_H - 4);
+
+  // Pixel detail — scanlines on paddle
+  ctx.fillStyle = 'rgba(0,0,0,0.2)';
+  for (let i = 0; i < PADDLE_H; i += 4) {
+    ctx.fillRect(x, y + i, PADDLE_W, 2);
+  }
+}
+
+function drawBall() {
+  ctx.shadowColor = '#FFFFFF';
+  ctx.shadowBlur = 16;
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fillRect(ballX, ballY, BALL_SIZE, BALL_SIZE);
+
+  // Inner pixel
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = '#CCCCFF';
+  ctx.fillRect(ballX + 2, ballY + 2, BALL_SIZE - 4, BALL_SIZE - 4);
+
+  ctx.shadowBlur = 0;
+}
+
+// ─────────────────────────────────────────────
+// PAUSE DRAW
+// ─────────────────────────────────────────────
+(function pauseLoop() {
+  if (state === 'pause') {
+    updateParticles(0.016);
+    draw();
+  }
+  requestAnimationFrame(pauseLoop);
+})();
+
+// Init score display
+updateScoreUI();
+</script>
+</body>
+</html>
