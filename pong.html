@@ -421,7 +421,10 @@ function setCpuTarget() {
 // ─────────────────────────────────────────────
 // INPUT
 // ─────────────────────────────────────────────
-document.addEventListener('keydown', e => { keys[e.code] = true; });
+document.addEventListener('keydown', e => {
+  keys[e.code] = true;
+  if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key)) e.preventDefault();
+});
 document.addEventListener('keyup',   e => { keys[e.code] = false; });
 
 // ─────────────────────────────────────────────
