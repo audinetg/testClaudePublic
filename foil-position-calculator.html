@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Calculateur Position Foil – Windsurf SGCDV</title>
+  <style>
+    :root {
+      --blue-dark: #0a2540;
+      --blue-mid: #1a4a7a;
+      --blue-light: #2d8bba;
+      --teal: #00c9b1;
+      --orange: #f4742a;
+      --sand: #f5e6c8;
+      --white: #ffffff;
+      --card-bg: #0e2d4a;
+      --input-bg: #0d2036;
+      --text-light: #c8dff0;
+      --shadow: 0 4px 24px rgba(0,0,0,0.4);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: linear-gradient(160deg, #041828 0%, #0a3a5c 60%, #0d4f78 100%);
+      min-height: 100vh;
+      color: var(--white);
+      padding: 20px;
+    }
+
+    header {
+      text-align: center;
+      padding: 30px 20px 20px;
+    }
+    header h1 {
+      font-size: clamp(1.4rem, 4vw, 2.2rem);
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      color: var(--teal);
+      text-shadow: 0 0 30px rgba(0,201,177,0.3);
+    }
+    header .subtitle {
+      margin-top: 6px;
+      font-size: 0.95rem;
+      color: var(--text-light);
+      opacity: 0.85;
+    }
+    header .location-badge {
+      display: inline-block;
+      margin-top: 10px;
+      background: var(--orange);
+      color: white;
+      font-size: 0.78rem;
+      font-weight: 700;
+      padding: 4px 14px;
+      border-radius: 20px;
+      letter-spacing: 0.5px;
+    }
+
+    .main-grid {
+      max-width: 1100px;
+      margin: 24px auto 0;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    @media (max-width: 760px) {
+      .main-grid { grid-template-columns: 1fr; }
+    }
+
+    .card {
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: var(--shadow);
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+    .card h2 {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--teal);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Conditions rapides SGCDV */
+    .presets {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+    .preset-btn {
+      padding: 7px 14px;
+      border-radius: 20px;
+      border: 2px solid var(--blue-light);
+      background: transparent;
+      color: var(--text-light);
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .preset-btn:hover, .preset-btn.active {
+      background: var(--blue-light);
+      color: white;
+      border-color: var(--blue-light);
+    }
+    .preset-label {
+      font-size: 0.72rem;
+      color: var(--text-light);
+      opacity: 0.65;
+      margin-bottom: 12px;
+    }
+
+    /* Sliders */
+    .param-group {
+      margin-bottom: 22px;
+    }
+    .param-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 8px;
+    }
+    .param-label {
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: var(--text-light);
+    }
+    .param-value {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: var(--teal);
+      min-width: 70px;
+      text-align: right;
+    }
+    input[type="range"] {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      background: var(--input-bg);
+      outline: none;
+      cursor: pointer;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--teal);
+      box-shadow: 0 0 8px rgba(0,201,177,0.5);
+      cursor: pointer;
+      transition: transform 0.15s;
+    }
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+    input[type="range"]::-webkit-slider-runnable-track {
+      height: 6px;
+      border-radius: 3px;
+    }
+    .range-bounds {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.68rem;
+      color: var(--text-light);
+      opacity: 0.5;
+      margin-top: 4px;
+    }
+
+    /* Résultat */
+    .result-card {
+      grid-column: 1 / -1;
+    }
+    .result-inner {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    @media (max-width: 600px) {
+      .result-inner { grid-template-columns: 1fr; }
+    }
+    .metric-box {
+      background: var(--input-bg);
+      border-radius: 12px;
+      padding: 18px;
+      text-align: center;
+      border: 1px solid rgba(255,255,255,0.07);
+    }
+    .metric-box .metric-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-light);
+      opacity: 0.7;
+      margin-bottom: 8px;
+    }
+    .metric-box .metric-val {
+      font-size: 2rem;
+      font-weight: 900;
+      color: var(--teal);
+      line-height: 1;
+    }
+    .metric-box .metric-unit {
+      font-size: 0.8rem;
+      color: var(--text-light);
+      opacity: 0.6;
+      margin-top: 4px;
+    }
+    .metric-box.highlight {
+      border-color: var(--teal);
+      background: rgba(0,201,177,0.08);
+    }
+    .metric-box.highlight .metric-val {
+      color: #fff;
+      font-size: 2.4rem;
+    }
+
+    /* Schéma visuel de la planche */
+    .board-visual-wrapper {
+      margin: 10px 0 20px;
+    }
+    .board-visual-wrapper h3 {
+      font-size: 0.82rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-light);
+      opacity: 0.7;
+      margin-bottom: 14px;
+    }
+    .board-svg-container {
+      width: 100%;
+      overflow: visible;
+    }
+
+    /* Jauge de confiance */
+    .confidence-bar-wrap {
+      margin-bottom: 20px;
+    }
+    .confidence-bar-wrap label {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--text-light);
+      opacity: 0.7;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      display: block;
+      margin-bottom: 6px;
+    }
+    .confidence-bar {
+      height: 8px;
+      background: var(--input-bg);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .confidence-bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      background: linear-gradient(90deg, var(--orange), var(--teal));
+      transition: width 0.4s ease;
+    }
+    .confidence-text {
+      font-size: 0.75rem;
+      color: var(--text-light);
+      opacity: 0.6;
+      margin-top: 4px;
+    }
+
+    /* Conseils */
+    .tips {
+      background: rgba(244,116,42,0.08);
+      border-left: 3px solid var(--orange);
+      border-radius: 0 10px 10px 0;
+      padding: 14px 18px;
+    }
+    .tips h3 {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--orange);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 10px;
+    }
+    .tips ul {
+      list-style: none;
+      padding: 0;
+    }
+    .tips ul li {
+      font-size: 0.85rem;
+      color: var(--text-light);
+      padding: 4px 0;
+      padding-left: 16px;
+      position: relative;
+      line-height: 1.5;
+    }
+    .tips ul li::before {
+      content: '▸';
+      position: absolute;
+      left: 0;
+      color: var(--orange);
+    }
+
+    /* Conditions SGCDV */
+    .sgcdv-info {
+      margin-top: 24px;
+      padding-top: 20px;
+      border-top: 1px solid rgba(255,255,255,0.07);
+    }
+    .sgcdv-info h3 {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--teal);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 12px;
+    }
+    .conditions-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 10px;
+    }
+    .cond-item {
+      background: var(--input-bg);
+      border-radius: 10px;
+      padding: 12px;
+      font-size: 0.8rem;
+    }
+    .cond-item .cond-name {
+      font-weight: 700;
+      color: var(--teal);
+      margin-bottom: 4px;
+    }
+    .cond-item .cond-detail {
+      color: var(--text-light);
+      opacity: 0.75;
+      line-height: 1.4;
+    }
+
+    footer {
+      text-align: center;
+      margin-top: 30px;
+      font-size: 0.72rem;
+      color: var(--text-light);
+      opacity: 0.4;
+      padding-bottom: 20px;
+    }
+
+    .wind-icon { display: inline-block; animation: spin 3s linear infinite; }
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>⚓ Calculateur Position Foil – Windsurf</h1>
+  <div class="subtitle">Positionnement longitudinal du foil selon votre profil et les conditions</div>
+  <div class="location-badge">📍 Saint-Gilles-Croix-de-Vie, Vendée</div>
+</header>
+
+<div class="main-grid">
+
+  <!-- Colonne 1 : Paramètres rider / matos -->
+  <div class="card">
+    <h2>🏄 Paramètres Rider & Matos</h2>
+
+    <div class="param-group">
+      <div class="param-header">
+        <span class="param-label">Poids du rider</span>
+        <span class="param-value" id="val-weight">75 kg</span>
+      </div>
+      <input type="range" id="slider-weight" min="50" max="120" value="75" step="1" oninput="update()" />
+      <div class="range-bounds"><span>50 kg</span><span>120 kg</span></div>
+    </div>
+
+    <div class="param-group">
+      <div class="param-header">
+        <span class="param-label">Surface de voile</span>
+        <span class="param-value" id="val-sail">6.0 m²</span>
+      </div>
+      <input type="range" id="slider-sail" min="3.5" max="10.0" value="6.0" step="0.5" oninput="update()" />
+      <div class="range-bounds"><span>3.5 m²</span><span>10.0 m²</span></div>
+    </div>
+
+    <div class="param-group">
+      <div class="param-header">
+        <span class="param-label">Longueur du mât de foil</span>
+        <span class="param-value" id="val-mast">75 cm</span>
+      </div>
+      <input type="range" id="slider-mast" min="40" max="110" value="75" step="5" oninput="update()" />
+      <div class="range-bounds"><span>40 cm</span><span>110 cm</span></div>
+    </div>
+
+    <div class="param-group">
+      <div class="param-header">
+        <span class="param-label">Envergure aile avant</span>
+        <span class="param-value" id="val-wing">80 cm</span>
+      </div>
+      <input type="range" id="slider-wing" min="40" max="130" value="80" step="5" oninput="update()" />
+      <div class="range-bounds"><span>40 cm</span><span>130 cm</span></div>
+    </div>
+  </div>
+
+  <!-- Colonne 2 : Conditions météo -->
+  <div class="card">
+    <h2><span class="wind-icon">🌬</span>&nbsp; Conditions Météo</h2>
+
+    <div class="presets">
+      <button class="preset-btn" onclick="applyPreset('calme')">Calme thermal</button>
+      <button class="preset-btn" onclick="applyPreset('marin')">Vent marin</button>
+      <button class="preset-btn" onclick="applyPreset('galerne')">Galerne</button>
+      <button class="preset-btn" onclick="applyPreset('sud')">Suroit</button>
+      <button class="preset-btn" onclick="applyPreset('tempete')">Coup de vent</button>
+    </div>
+    <div class="preset-label">Conditions typiques à Saint-Gilles-Croix-de-Vie</div>
+
+    <div class="param-group">
+      <div class="param-header">
+        <span class="param-label">Force du vent (nœuds)</span>
+        <span class="param-value" id="val-wind">15 kts</span>
+      </div>
+      <input type="range" id="slider-wind" min="8" max="40" value="15" step="1" oninput="update()" />
+      <div class="range-bounds"><span>8 kts</span><span>40 kts</span></div>
+    </div>
+
+    <div class="param-group">
+      <div class="param-header">
+        <span class="param-label">État de la mer / Clapot</span>
+        <span class="param-value" id="val-chop">Modéré</span>
+      </div>
+      <input type="range" id="slider-chop" min="1" max="5" value="3" step="1" oninput="update()" />
+      <div class="range-bounds"><span>Plat</span><span>Agité</span></div>
+    </div>
+
+    <div class="param-group">
+      <div class="param-header">
+        <span class="param-label">Allure principale</span>
+        <span class="param-value" id="val-allure">Travers</span>
+      </div>
+      <input type="range" id="slider-allure" min="1" max="5" value="3" step="1" oninput="update()" />
+      <div class="range-bounds"><span>Près</span><span>Portant</span></div>
+    </div>
+
+    <div class="param-group">
+      <div class="param-header">
+        <span class="param-label">Niveau rider</span>
+        <span class="param-value" id="val-level">Intermédiaire</span>
+      </div>
+      <input type="range" id="slider-level" min="1" max="3" value="2" step="1" oninput="update()" />
+      <div class="range-bounds"><span>Débutant</span><span>Expert</span></div>
+    </div>
+  </div>
+
+  <!-- Résultat full width -->
+  <div class="card result-card">
+    <h2>📐 Résultat – Position Foil Recommandée</h2>
+
+    <div class="result-inner">
+      <div class="metric-box highlight">
+        <div class="metric-label">Position foil</div>
+        <div class="metric-val" id="res-position">—</div>
+        <div class="metric-unit">cm depuis l'arrière</div>
+      </div>
+      <div class="metric-box">
+        <div class="metric-label">Plage optimale</div>
+        <div class="metric-val" id="res-range" style="font-size:1.3rem;">—</div>
+        <div class="metric-unit">cm (min → max)</div>
+      </div>
+      <div class="metric-box">
+        <div class="metric-label">Correction voile</div>
+        <div class="metric-val" id="res-sail-adj" style="font-size:1.5rem;">—</div>
+        <div class="metric-unit">vs base poids</div>
+      </div>
+    </div>
+
+    <!-- Schéma visuel -->
+    <div class="board-visual-wrapper">
+      <h3>Schéma de positionnement</h3>
+      <div class="board-svg-container">
+        <svg id="board-svg" viewBox="0 0 700 180" xmlns="http://www.w3.org/2000/svg" width="100%">
+          <!-- Eau -->
+          <rect x="0" y="120" width="700" height="60" fill="#0a2540" rx="4"/>
+          <text x="10" y="148" fill="#1a4a7a" font-size="11" font-family="sans-serif">≈ ≈ ≈ ≈ ≈ ≈ ≈ ≈ ≈ ≈ ≈ ≈ ≈ ≈ ≈ ≈ ≈ ≈ ≈ ≈ ≈ ≈ ≈ ≈ ≈ ≈ ≈ ≈ ≈ ≈ ≈ ≈</text>
+
+          <!-- Planche -->
+          <path d="M 60 90 Q 80 75 120 72 L 580 72 Q 640 72 660 82 Q 680 90 660 98 L 120 98 Q 80 98 60 90 Z"
+                fill="#1a4a7a" stroke="#2d8bba" stroke-width="1.5"/>
+
+          <!-- Étiquettes extrémités -->
+          <text x="40" y="89" fill="#c8dff0" font-size="10" font-family="sans-serif" text-anchor="middle">◄ Arrière</text>
+          <text x="665" y="89" fill="#c8dff0" font-size="10" font-family="sans-serif" text-anchor="start">Avant ►</text>
+
+          <!-- Graduation (cm depuis arrière) -->
+          <g id="graduations"></g>
+
+          <!-- Position foil (mât) -->
+          <g id="foil-indicator">
+            <line id="foil-line" x1="300" y1="68" x2="300" y2="125" stroke="#00c9b1" stroke-width="3" stroke-dasharray="none"/>
+            <!-- Aile avant foil -->
+            <ellipse id="foil-wing-front" cx="300" cy="128" rx="40" ry="5" fill="none" stroke="#00c9b1" stroke-width="2.5"/>
+            <!-- Petite aile arrière -->
+            <ellipse id="foil-wing-rear" cx="300" cy="124" rx="18" ry="3.5" fill="none" stroke="#f4742a" stroke-width="2"/>
+            <!-- Label -->
+            <text id="foil-label" x="300" y="62" fill="#00c9b1" font-size="11" font-family="sans-serif"
+                  text-anchor="middle" font-weight="bold">Foil</text>
+          </g>
+
+          <!-- Plage optimale -->
+          <rect id="range-rect" x="260" y="72" width="80" height="26" fill="rgba(0,201,177,0.12)"
+                stroke="rgba(0,201,177,0.3)" stroke-width="1" rx="2"/>
+
+          <!-- Insertions courantes (marks) -->
+          <g id="insert-marks"></g>
+
+          <!-- Légende -->
+          <rect x="10" y="10" width="12" height="5" fill="rgba(0,201,177,0.3)" stroke="#00c9b1" stroke-width="1"/>
+          <text x="26" y="18" fill="#c8dff0" font-size="9" font-family="sans-serif">Plage optimale</text>
+          <line x1="70" y1="13" x2="82" y2="13" stroke="#00c9b1" stroke-width="2.5"/>
+          <text x="86" y="17" fill="#c8dff0" font-size="9" font-family="sans-serif">Position recommandée</text>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Barre de confiance -->
+    <div class="confidence-bar-wrap">
+      <label>Indice de confiance de la recommandation</label>
+      <div class="confidence-bar">
+        <div class="confidence-bar-fill" id="confidence-fill" style="width:70%"></div>
+      </div>
+      <div class="confidence-text" id="confidence-text">Estimation modérée – affinez selon vos sensations sur l'eau</div>
+    </div>
+
+    <!-- Tips contextuels -->
+    <div class="tips">
+      <h3>💡 Conseils pour ces conditions</h3>
+      <ul id="tips-list">
+        <li>Chargez la page et ajustez les paramètres…</li>
+      </ul>
+    </div>
+
+    <!-- Info Saint-Gilles -->
+    <div class="sgcdv-info">
+      <h3>Conditions typiques à Saint-Gilles-Croix-de-Vie</h3>
+      <div class="conditions-grid">
+        <div class="cond-item">
+          <div class="cond-name">☀️ Thermal estival</div>
+          <div class="cond-detail">12–18 kts NO, mer plate à légère, idéal débutant foil</div>
+        </div>
+        <div class="cond-item">
+          <div class="cond-name">🌊 Vent marin</div>
+          <div class="cond-detail">15–22 kts SO-O, petit clapot côtier, réglage intermédiaire</div>
+        </div>
+        <div class="cond-item">
+          <div class="cond-name">💨 Galerne</div>
+          <div class="cond-detail">20–30 kts NO-N, clapot formé, mer agitée, foil reculé</div>
+        </div>
+        <div class="cond-item">
+          <div class="cond-name">🌀 Suroit / Dépression</div>
+          <div class="cond-detail">25–35 kts SO, grosse mer, petite voile, reculer le foil</div>
+        </div>
+        <div class="cond-item">
+          <div class="cond-name">⚡ Coup de vent</div>
+          <div class="cond-detail">>35 kts, pratiquer uniquement si expert, sécurité max</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  Calculateur indicatif basé sur des ratios empiriques windsurf foil. Affinez toujours en eau calme d'abord.<br>
+  Conditions locales SGCDV · Vendée Atlantique
+</footer>
+
+<script>
+  // ─── Présets Saint-Gilles-Croix-de-Vie ────────────────────────────────────
+  const presets = {
+    calme:   { wind: 14, chop: 1, allure: 3, sail: 7.0 },
+    marin:   { wind: 18, chop: 2, allure: 3, sail: 5.5 },
+    galerne: { wind: 25, chop: 4, allure: 2, sail: 4.5 },
+    sud:     { wind: 28, chop: 4, allure: 4, sail: 4.0 },
+    tempete: { wind: 35, chop: 5, allure: 3, sail: 3.5 },
+  };
+
+  function applyPreset(key) {
+    const p = presets[key];
+    document.getElementById('slider-wind').value  = p.wind;
+    document.getElementById('slider-chop').value  = p.chop;
+    document.getElementById('slider-allure').value = p.allure;
+    document.getElementById('slider-sail').value  = p.sail;
+    document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+    event.target.classList.add('active');
+    update();
+  }
+
+  // ─── Labels ───────────────────────────────────────────────────────────────
+  const chopLabels   = ['', 'Plat', 'Léger', 'Modéré', 'Formé', 'Agité'];
+  const allureLabels = ['', 'Près serré', 'Près', 'Travers', 'Grand largue', 'Portant'];
+  const levelLabels  = ['', 'Débutant', 'Intermédiaire', 'Expert'];
+
+  // ─── Calcul principal ────────────────────────────────────────────────────
+  function calcPosition(weight, sail, wind, chop, allure, mast, wing, level) {
+    /*
+      Position exprimée en cm depuis l'arrière de la boîte de foil.
+      Référence : une planche foil standard a sa boîte centrée autour
+      de 60–80 cm depuis le tail, on travaille autour d'un point de
+      référence de 70 cm puis on applique des corrections.
+    */
+    const BASE_REF = 70; // cm depuis l'arrière (centre boîte)
+
+    // 1. Correction poids : +1 cm par tranche de 5 kg au-dessus de 75 kg
+    //    Rider lourd → foil plus en arrière pour équilibrer
+    const weightCorr = (weight - 75) * 0.2;  // ≈ +1 cm / 5 kg
+
+    // 2. Correction voile :
+    //    Grande voile = centre d'effort en avant = foil légèrement en avant
+    //    Petite voile = foil légèrement en arrière
+    const sailRef  = 5.5; // m² de référence pour un rider ~75 kg vent 15–18 kts
+    const sailCorr = -(sail - sailRef) * 0.8; // grande voile → foil avant (négatif = vers avant)
+
+    // 3. Correction vent :
+    //    Vent fort → vitesse élevée → plus de portance → foil en avant pour éviter le cabrage
+    const windCorr = -(wind - 15) * 0.15;
+
+    // 4. Correction clapot :
+    //    Mer agitée → reculer légèrement le foil pour stabilité
+    const chopCorr = (chop - 3) * 0.8;
+
+    // 5. Correction allure :
+    //    Portant : foil légèrement en avant (drive vers l'avant)
+    //    Près    : foil légèrement en arrière
+    const allureCorr = -(allure - 3) * 0.5;
+
+    // 6. Correction mât foil : mât long = lever le centre de gravité = moins de tolérance
+    const mastCorr = (mast - 75) * 0.05;
+
+    // 7. Correction envergure : grande aile = plus de portance à basse vitesse = foil en avant
+    const wingCorr = -(wing - 80) * 0.04;
+
+    // 8. Correction niveau : débutant → position plus neutre / centrale (±0)
+    let levelCorr = 0;
+    if (level === 1) levelCorr = -weightCorr * 0.3; // atténue les extrêmes
+    if (level === 3) levelCorr = 0; // expert gère tout
+
+    const total = BASE_REF + weightCorr + sailCorr + windCorr + chopCorr
+                + allureCorr + mastCorr + wingCorr + levelCorr;
+
+    const clamped = Math.max(45, Math.min(100, total));
+
+    // Plage de tolérance (±2.5 à ±4 cm selon clapot)
+    const tolerance = 2.0 + chop * 0.4;
+
+    return {
+      pos: Math.round(clamped * 10) / 10,
+      min: Math.round((clamped - tolerance) * 10) / 10,
+      max: Math.round((clamped + tolerance) * 10) / 10,
+      sailAdj: Math.round(sailCorr * 10) / 10,
+      windAdj: Math.round(windCorr * 10) / 10,
+    };
+  }
+
+  // ─── Conseils contextuels ────────────────────────────────────────────────
+  function buildTips(weight, sail, wind, chop, allure, level, res) {
+    const tips = [];
+
+    if (wind < 12)
+      tips.push('Vent faible : difficulté à décoller le foil. Étirez le bodydrag et attendez une risée avant de pomper.');
+    if (wind > 28)
+      tips.push('Vent fort : les chocs sous le foil augmentent. Pensez à réduire la voile avant de modifier la position.');
+    if (chop >= 4)
+      tips.push('Mer agitée : un foil reculé amortit les sauts parasites. Gardez les genoux fléchis en permanence.');
+    if (chop <= 1)
+      tips.push('Mer plate : conditions idéales pour essayer un réglage légèrement plus en avant et gagner en vitesse.');
+    if (allure >= 4)
+      tips.push('Allure portante : placez légèrement le poids sur le pied arrière au décollage pour éviter le looping.');
+    if (allure <= 2)
+      tips.push('Allure au près : le foil risque de manquer de drive. Éloignez légèrement le mât avant ou augmentez l\'incidence.');
+    if (weight > 90)
+      tips.push('Rider lourd : privilégiez une grande aile avant (>90 cm) pour décoller à faible vitesse.');
+    if (sail > 7.5)
+      tips.push('Grande voile : attention à ne pas surpuissancer au décollage. Anticipez le trim de sangle.');
+    if (level === 1)
+      tips.push('Débutant : commencez en position centrale (neutre) et ne dépassez pas ±1 cm par session d\'ajustement.');
+    if (level === 3 && wind > 20)
+      tips.push('Expert : conditions propices aux hautes vitesses. Essayez de reculer de 1 cm pour plus de liberté au portant.');
+
+    if (tips.length === 0)
+      tips.push('Conditions équilibrées : la position calculée devrait vous donner un bon décollage dès 10–12 kts.');
+
+    tips.push(`Position ${res.pos} cm : vérifiez que le mât de foil est bien aligné perpendiculairement à l'axe de la planche.`);
+
+    return tips;
+  }
+
+  // ─── Schéma SVG ──────────────────────────────────────────────────────────
+  function updateSVG(pos, rangeMin, rangeMax) {
+    // La planche va de x=60 (arrière) à x=650 (avant), soit 590 px pour ~200 cm de boîte réelle
+    // On mappe [40, 105] cm → [60, 650] px
+    const BOARD_MIN_CM = 40;
+    const BOARD_MAX_CM = 105;
+    const SVG_X_REAR  = 65;
+    const SVG_X_FRONT = 645;
+    const SVG_WIDTH   = SVG_X_FRONT - SVG_X_REAR;
+
+    function cmToX(cm) {
+      return SVG_X_REAR + ((cm - BOARD_MIN_CM) / (BOARD_MAX_CM - BOARD_MIN_CM)) * SVG_WIDTH;
+    }
+
+    const xPos  = cmToX(pos);
+    const xMin  = cmToX(Math.max(BOARD_MIN_CM, rangeMin));
+    const xMax  = cmToX(Math.min(BOARD_MAX_CM, rangeMax));
+
+    // Plage
+    const rect = document.getElementById('range-rect');
+    rect.setAttribute('x', xMin);
+    rect.setAttribute('width', Math.max(4, xMax - xMin));
+
+    // Mât foil
+    document.getElementById('foil-line').setAttribute('x1', xPos);
+    document.getElementById('foil-line').setAttribute('x2', xPos);
+    document.getElementById('foil-wing-front').setAttribute('cx', xPos);
+    document.getElementById('foil-wing-rear').setAttribute('cx', xPos);
+    document.getElementById('foil-label').setAttribute('x', xPos);
+
+    // Graduations
+    const gradG = document.getElementById('graduations');
+    gradG.innerHTML = '';
+    for (let cm = 45; cm <= 100; cm += 5) {
+      const x = cmToX(cm);
+      const isMajor = cm % 10 === 0;
+      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      line.setAttribute('x1', x); line.setAttribute('y1', 72);
+      line.setAttribute('x2', x); line.setAttribute('y2', isMajor ? 63 : 68);
+      line.setAttribute('stroke', isMajor ? '#c8dff0' : '#2d8bba');
+      line.setAttribute('stroke-width', isMajor ? 1.5 : 1);
+      gradG.appendChild(line);
+      if (isMajor) {
+        const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        txt.setAttribute('x', x);
+        txt.setAttribute('y', 56);
+        txt.setAttribute('fill', '#c8dff0');
+        txt.setAttribute('font-size', '9');
+        txt.setAttribute('font-family', 'sans-serif');
+        txt.setAttribute('text-anchor', 'middle');
+        txt.setAttribute('opacity', '0.6');
+        txt.textContent = cm + ' cm';
+        gradG.appendChild(txt);
+      }
+    }
+  }
+
+  // ─── Mise à jour globale ──────────────────────────────────────────────────
+  function update() {
+    const weight = +document.getElementById('slider-weight').value;
+    const sail   = +document.getElementById('slider-sail').value;
+    const mast   = +document.getElementById('slider-mast').value;
+    const wing   = +document.getElementById('slider-wing').value;
+    const wind   = +document.getElementById('slider-wind').value;
+    const chop   = +document.getElementById('slider-chop').value;
+    const allure = +document.getElementById('slider-allure').value;
+    const level  = +document.getElementById('slider-level').value;
+
+    // Labels
+    document.getElementById('val-weight').textContent = weight + ' kg';
+    document.getElementById('val-sail').textContent   = sail.toFixed(1) + ' m²';
+    document.getElementById('val-mast').textContent   = mast + ' cm';
+    document.getElementById('val-wing').textContent   = wing + ' cm';
+    document.getElementById('val-wind').textContent   = wind + ' kts';
+    document.getElementById('val-chop').textContent   = chopLabels[chop];
+    document.getElementById('val-allure').textContent = allureLabels[allure];
+    document.getElementById('val-level').textContent  = levelLabels[level];
+
+    // Calcul
+    const res = calcPosition(weight, sail, wind, chop, allure, mast, wing, level);
+
+    // Affichage résultats
+    document.getElementById('res-position').textContent = res.pos + ' cm';
+    document.getElementById('res-range').textContent    = res.min + ' → ' + res.max + ' cm';
+    const adjText = res.sailAdj >= 0 ? '+' + res.sailAdj : res.sailAdj.toString();
+    document.getElementById('res-sail-adj').textContent = adjText + ' cm';
+
+    // SVG
+    updateSVG(res.pos, res.min, res.max);
+
+    // Confiance
+    // La confiance diminue si les conditions sont extrêmes ou contradictoires
+    let conf = 75;
+    if (wind < 12 || wind > 32) conf -= 15;
+    if (chop >= 4) conf -= 10;
+    if (level === 1) conf -= 5;
+    if (sail < 4 && wind < 15) conf -= 10;
+    conf = Math.max(20, Math.min(95, conf));
+    document.getElementById('confidence-fill').style.width = conf + '%';
+    let confText = '';
+    if (conf >= 80)      confText = 'Bonne confiance – conditions dans la plage habituelle SGCDV';
+    else if (conf >= 60) confText = 'Confiance modérée – affinez en eau calme puis vérifiez en navigation';
+    else                 confText = 'Conditions atypiques – commencez en position neutre (70 cm) et ajustez progressivement';
+    document.getElementById('confidence-text').textContent = confText;
+
+    // Conseils
+    const tips = buildTips(weight, sail, wind, chop, allure, level, res);
+    const ul = document.getElementById('tips-list');
+    ul.innerHTML = tips.map(t => `<li>${t}</li>`).join('');
+  }
+
+  // Init
+  update();
+</script>
+</body>
+</html>
