@@ -277,7 +277,7 @@
       <button class="diff-btn hard"   onclick="selectDiff(2)">BARBARE</button>
     </div>
     <button class="start-btn" onclick="startGame()">&#9658; COMBATTRE &#9668;</button>
-    <div class="controls-hint">W/S OU FLECHES POUR BOUGER &nbsp;|&nbsp; PREMIER A 7 POINTS GAGNE</div>
+    <div class="controls-hint">W/S OU FLECHES POUR BOUGER &nbsp;|&nbsp; ESPACE POUR SERVIR &nbsp;|&nbsp; 7 POINTS POUR GAGNER</div>
   </div>
 
   <!-- GAME OVER -->
@@ -375,14 +375,12 @@ function startGame() {
   document.getElementById('ui-diff').style.color = diff.color;
   document.getElementById('ui-diff').style.textShadow = `0 0 8px ${diff.color}`;
   initRound(true);
-  state = 'play';
   requestAnimationFrame(loop);
 }
 
 function restartSameDiff() {
   document.getElementById('gameover').classList.add('hidden');
   initRound(true);
-  state = 'play';
 }
 
 function backToMenu() {
@@ -395,22 +393,29 @@ function backToMenu() {
 // INIT
 // ─────────────────────────────────────────────
 function initRound(resetScore) {
-  if (resetScore) { playerScore = 0; cpuScore = 0; }
+  if (resetScore) { playerScore = 0; cpuScore = 0; updateScoreUI(); }
 
   playerY = H / 2 - PADDLE_H / 2;
   cpuY    = H / 2 - PADDLE_H / 2;
-  ballX   = W / 2;
-  ballY   = H / 2;
+  ballX   = W / 2 - BALL_SIZE / 2;
+  ballY   = H / 2 - BALL_SIZE / 2;
+  ballVX  = 0;
+  ballVY  = 0;
   particles = [];
   flashTimer = 0;
+  state = 'serve';
 
+  setCpuTarget();
+}
+
+function launchBall() {
   const angle = (Math.random() * 0.6 - 0.3) + (Math.random() < 0.5 ? 0 : Math.PI);
   const spd = diff.ballSpeedInit;
   ballVX = Math.cos(angle) * spd;
   ballVY = Math.sin(angle) * spd;
   if (Math.abs(ballVX) < 2) ballVX = ballVX < 0 ? -2 : 2;
-
-  setCpuTarget();
+  beep(440, 0.08);
+  state = 'play';
 }
 
 function setCpuTarget() {
@@ -469,6 +474,14 @@ function drawParticles() {
 function loop(ts) {
   const dt = Math.min((ts - lastTime) / 1000, 0.05);
   lastTime = ts;
+
+  if (state === 'serve') {
+    if (keys['Space']) launchBall();
+    updateParticles(dt);
+    draw();
+    requestAnimationFrame(loop);
+    return;
+  }
 
   if (state !== 'play') return;
 
@@ -585,9 +598,8 @@ function update(dt) {
     spawnParticles(W/2, H/2, '#FF0055', 30);
     updateScoreUI();
     if (cpuScore >= WINNING_SCORE) { endGame(false); return; }
-    setTimeout(() => initRound(false), 800);
-    state = 'pause';
-    setTimeout(() => { if (state === 'pause') state = 'play'; }, 800);
+    initRound(false);
+    return;
   }
   if (ballX > W) {
     playerScore++;
@@ -595,9 +607,8 @@ function update(dt) {
     spawnParticles(W/2, H/2, '#00FF41', 30);
     updateScoreUI();
     if (playerScore >= WINNING_SCORE) { endGame(true); return; }
-    setTimeout(() => initRound(false), 800);
-    state = 'pause';
-    setTimeout(() => { if (state === 'pause') state = 'play'; }, 800);
+    initRound(false);
+    return;
   }
 
   if (flashTimer > 0) flashTimer -= dt;
@@ -689,6 +700,18 @@ function draw() {
   ctx.fillText(diff.name, W/2, H - 10);
   ctx.globalAlpha = 1;
 
+  // Serve prompt
+  if (state === 'serve') {
+    const blink = Math.floor(Date.now() / 400) % 2 === 0;
+    if (blink) {
+      ctx.font = '11px "Press Start 2P", monospace';
+      ctx.fillStyle = '#FFFFFF';
+      ctx.globalAlpha = 0.85;
+      ctx.fillText('ESPACE POUR SERVIR', W/2, H/2 + 60);
+      ctx.globalAlpha = 1;
+    }
+  }
+
   ctx.textAlign = 'left';
 }
 
@@ -730,17 +753,6 @@ function drawBall() {
 
   ctx.shadowBlur = 0;
 }
-
-// ─────────────────────────────────────────────
-// PAUSE DRAW
-// ─────────────────────────────────────────────
-(function pauseLoop() {
-  if (state === 'pause') {
-    updateParticles(0.016);
-    draw();
-  }
-  requestAnimationFrame(pauseLoop);
-})();
 
 // Init score display
 updateScoreUI();
